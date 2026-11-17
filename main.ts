@@ -6,6 +6,7 @@ import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { forecast, type Case, type Options } from './lib/model.ts';
 import { forecastOLS } from './lib/ols.ts';
+import { forecastLocal } from './lib/locallinear.ts';
 
 const INPUT_DIR = process.env.MAKEFUN_INPUT_DIR ?? '/input';
 const OUTPUT_DIR = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
@@ -20,17 +21,19 @@ const VARIANTS: Record<string, Options> = {
   // Stay close to persistence with a modest comparable tilt.
   safe: { shrink: 0.55, minSpread: 0.14, weightPower: 0.18 },
 };
-const VARIANT_NAME = process.env.MAKEFUN_VARIANT ?? 'ols';
+const VARIANT_NAME = process.env.MAKEFUN_VARIANT ?? 'local';
 const useOLS = VARIANT_NAME === 'ols';
+const useLocal = VARIANT_NAME === 'local';
 const opt = VARIANTS[VARIANT_NAME] ?? VARIANTS.default!;
 const olsOpt = { ridge: 1.0, spreadFloor: 0.08, spreadScale: 0.45, shrink: 0 };
+const localOpt = { h: 1.0, spreadFloor: 0.08, spreadScale: 0.5, ridge: 0.5 };
 
 mkdirSync(OUTPUT_DIR, { recursive: true });
 const inputs = readdirSync(INPUT_DIR).filter((f) => f.endsWith('.in')).sort();
 for (const file of inputs) {
   const id = file.slice(0, -'.in'.length);
   const c = JSON.parse(readFileSync(join(INPUT_DIR, file), 'utf8')) as Case;
-  const hours = useOLS ? forecastOLS(c, olsOpt) : forecast(c, opt);
+  const hours = useLocal ? forecastLocal(c, localOpt) : useOLS ? forecastOLS(c, olsOpt) : forecast(c, opt);
   writeFileSync(join(OUTPUT_DIR, `${id}.out`), `${JSON.stringify({ hours })}\n`);
 }
 process.stdout.write(`forecast: ${inputs.length} case(s), variant=${process.env.MAKEFUN_VARIANT ?? 'tight'}\n`);

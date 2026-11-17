@@ -14,10 +14,13 @@ const VARIANTS: Record<string, Options> = {
   default: { shrink: 0.35, minSpread: 0.16, weightPower: 0.25 },
   // Trust the comparables more, wider tails.
   bold: { shrink: 0.15, minSpread: 0.20, weightPower: 0.35 },
+  // Narrower spread and less shrinkage: target the ~0.9 coverage the rule rewards.
+  tight: { shrink: 0.2, minSpread: 0.11, weightPower: 0.3 },
   // Stay close to persistence with a modest comparable tilt.
   safe: { shrink: 0.55, minSpread: 0.14, weightPower: 0.18 },
 };
-const opt = VARIANTS[process.env.MAKEFUN_VARIANT ?? 'default'] ?? VARIANTS.default!;
+const VARIANT_NAME = process.env.MAKEFUN_VARIANT ?? 'tight';
+const opt = VARIANTS[VARIANT_NAME] ?? VARIANTS.default!;
 
 mkdirSync(OUTPUT_DIR, { recursive: true });
 const inputs = readdirSync(INPUT_DIR).filter((f) => f.endsWith('.in')).sort();
@@ -27,4 +30,4 @@ for (const file of inputs) {
   const hours = forecast(c, opt);
   writeFileSync(join(OUTPUT_DIR, `${id}.out`), `${JSON.stringify({ hours })}\n`);
 }
-process.stdout.write(`forecast: ${inputs.length} case(s), variant=${process.env.MAKEFUN_VARIANT ?? 'default'}\n`);
+process.stdout.write(`forecast: ${inputs.length} case(s), variant=${process.env.MAKEFUN_VARIANT ?? 'tight'}\n`);
